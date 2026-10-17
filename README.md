@@ -9,8 +9,8 @@ SEE AI — ilg‘or AI assistent, tadqiqot platformasi, dasturlash yordamchisi v
 - **Framework**: [Next.js 16.4](https://nextjs.org/) (App Router, Turbopack, React 19.3)
 - **Til**: Strict TypeScript 5
 - **Uslublar**: Tailwind CSS 4 + Maxsus Dizayn Tizimi (qorong‘u/yorug‘/tizim mavzulari)
-- **Ma'lumotlar bazasi**: PostgreSQL + [Prisma ORM 6.19](https://www.prisma.io/)
-- **Autentifikatsiya**: Auth.js v5 (`next-auth@beta`) + `@auth/prisma-adapter` + `bcryptjs`
+- **Ma'lumotlar bazasi**: Netlify Database (PostgreSQL) + [Drizzle ORM](https://orm.drizzle.team/)
+- **Autentifikatsiya**: Auth.js v5 (`next-auth@beta`) + `bcryptjs`
 - **AI Provayderlar**:
   - **Google Gemini**: Rasmiy `@google/genai` SDK (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.0-flash`)
   - **Anthropic Claude**: Rasmiy `@anthropic-ai/sdk` (`claude-sonnet-4-20250514`, `claude-3-5-sonnet-latest`, `claude-3-5-haiku-latest`)
@@ -25,8 +25,8 @@ SEE AI — ilg‘or AI assistent, tadqiqot platformasi, dasturlash yordamchisi v
 
 ```
 see_ai/
-├── prisma/
-│   └── schema.prisma            # PostgreSQL relyatsion sxemasi (User, Conversation, Message, Attachment va boshqalar)
+├── db/
+│   └── schema.ts                # Drizzle sxemasi (User, Conversation, Message, Attachment va boshqalar)
 ├── src/
 │   ├── app/
 │   │   ├── api/
@@ -102,11 +102,10 @@ WEB_SEARCH_PROVIDER="brave"
 WEB_SEARCH_API_KEY=""
 ```
 
-### 4. Prisma ma'lumotlar bazasini yangilash
+### 4. Ma'lumotlar bazasi migratsiyalari
+Sxema o'zgarganda migratsiya yarating (Netlify deploy vaqtida avtomatik qo'llaydi):
 ```bash
-npx prisma db push
-# yoki migratsiyalar bilan:
-# npx prisma migrate dev --name init
+npx drizzle-kit generate --name <migratsiya_nomi>
 ```
 
 ### 5. Dasturni ishga tushirish

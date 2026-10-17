@@ -1,8 +1,13 @@
-import { auth } from '@/auth';
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth?.user;
+// Optimistic check only: the session cookie is fully verified by the API routes
+// (see src/lib/auth/dal.ts), so the proxy stays free of database access.
+const SESSION_COOKIES = ['authjs.session-token', '__Secure-authjs.session-token'];
+
+export default function proxy(req: NextRequest) {
+  const isLoggedIn = req.cookies
+    .getAll()
+    .some((c) => SESSION_COOKIES.some((name) => c.name === name || c.name.startsWith(`${name}.`)));
   const isAuthPage = req.nextUrl.pathname.startsWith('/login');
   const isRootPage = req.nextUrl.pathname === '/';
   const isProtectedPage =
@@ -24,7 +29,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ['/', '/chat/:path*', '/settings/:path*', '/login'],

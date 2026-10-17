@@ -8,11 +8,6 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  // Database
-  DATABASE_URL: z
-    .string()
-    .min(1, 'DATABASE_URL is required. Set a PostgreSQL connection string.'),
-
   // Authentication
   AUTH_SECRET: z
     .string()
@@ -27,7 +22,7 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional().default(''),
   GEMINI_MODEL: z.string().optional().default('gemini-2.5-flash'),
   ANTHROPIC_API_KEY: z.string().optional().default(''),
-  ANTHROPIC_MODEL: z.string().optional().default('claude-sonnet-4-20250514'),
+  ANTHROPIC_MODEL: z.string().optional().default('claude-sonnet-4-6'),
 
   // Web Search
   WEB_SEARCH_PROVIDER: z
@@ -79,13 +74,8 @@ export function getEnv(): EnvConfig {
  * Check if a specific AI provider is configured.
  */
 export function isProviderConfigured(provider: 'gemini' | 'anthropic'): boolean {
-  const env = getEnv();
-  switch (provider) {
-    case 'gemini':
-      return env.GEMINI_API_KEY.length > 0;
-    case 'anthropic':
-      return env.ANTHROPIC_API_KEY.length > 0;
-  }
+  // Netlify AI Gateway injects GEMINI_API_KEY / ANTHROPIC_API_KEY (and base URLs) at runtime
+  return provider === 'gemini' || provider === 'anthropic';
 }
 
 /**

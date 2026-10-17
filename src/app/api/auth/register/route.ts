@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import prisma from '@/lib/database/prisma';
+import { eq } from 'drizzle-orm';
+import { db, users, userPreferences } from '@db';
 
 const registerSchema = z.object({
   email: z.string().email("To'g'ri elektron pochta manzilini kiriting"),
@@ -35,9 +36,11 @@ export async function POST(request: NextRequest) {
     const { email, name, password } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
+      .limit(1);
 
     if (existingUser) {
       return Response.json(
@@ -48,24 +51,26 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await prisma.user.create({
-      data: {
+    const [user] = await db
+      .insert(users)
+      .values({
         email: normalizedEmail,
         name,
         passwordHash,
-      },
-    });
+      })
+      .returning();
 
     // Default user preference
-    await prisma.userPreference.create({
-      data: {
+    await db
+      .insert(userPreferences)
+      .values({
         userId: user.id,
         theme: 'system',
         language: 'uz',
         defaultProvider: 'gemini',
         defaultModel: 'gemini-2.5-flash',
-      },
-    }).catch(() => {});
+      })
+      .catch(() => {});
 
     return Response.json(
       { success: true, message: "Hisob muvaffaqiyatli yaratildi" },

@@ -11,9 +11,9 @@ import {
 } from '../types';
 
 export const ANTHROPIC_MODELS: Record<string, ModelInfo> = {
-  'claude-sonnet-4-20250514': {
-    id: 'claude-sonnet-4-20250514',
-    name: 'Claude Sonnet 4',
+  'claude-sonnet-4-6': {
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet 4.6',
     provider: 'anthropic',
     description: 'Next-generation Claude model with state-of-the-art reasoning and coding',
     capabilities: {
@@ -24,9 +24,9 @@ export const ANTHROPIC_MODELS: Record<string, ModelInfo> = {
       maxOutputTokens: 8192,
     },
   },
-  'claude-3-5-sonnet-latest': {
-    id: 'claude-3-5-sonnet-latest',
-    name: 'Claude 3.5 Sonnet',
+  'claude-opus-4-8': {
+    id: 'claude-opus-4-8',
+    name: 'Claude Opus 4.8',
     provider: 'anthropic',
     description: 'High-intelligence model ideal for complex tasks, reasoning, and visual processing',
     capabilities: {
@@ -37,9 +37,9 @@ export const ANTHROPIC_MODELS: Record<string, ModelInfo> = {
       maxOutputTokens: 8192,
     },
   },
-  'claude-3-5-haiku-latest': {
-    id: 'claude-3-5-haiku-latest',
-    name: 'Claude 3.5 Haiku',
+  'claude-haiku-4-5': {
+    id: 'claude-haiku-4-5',
+    name: 'Claude Haiku 4.5',
     provider: 'anthropic',
     description: 'Ultra-fast, lightweight model for high-throughput and low-latency workloads',
     capabilities: {

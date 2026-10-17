@@ -38,9 +38,9 @@ export const GEMINI_MODELS: Record<string, ModelInfo> = {
       maxOutputTokens: 8192,
     },
   },
-  'gemini-2.0-flash': {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
+  'gemini-2.5-flash-lite': {
+    id: 'gemini-2.5-flash-lite',
+    name: 'Gemini 2.5 Flash Lite',
     provider: 'gemini',
     description: 'Next-generation fast model optimized for low latency and multimodal tasks',
     capabilities: {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
+import { and, count, desc, eq, ilike, inArray } from 'drizzle-orm';
 import { verifySession } from '@/lib/auth/dal';
-import prisma from '@/lib/database/prisma';
+import { db, conversations, messages } from '@db';
 import { createConversationSchema } from '@/lib/security/validation';
 
 export async function GET(req: NextRequest) {
@@ -10,34 +11,40 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
+  const page = Math.max(parseInt(searchParams.get('page') || '1', 10) || 1, 1);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10) || 20, 100);
   const q = searchParams.get('q') || '';
 
-  const whereClause: { userId: string; title?: { contains: string; mode: 'insensitive' } } = {
-    userId: session.user.id,
-  };
-  if (q.trim()) {
-    whereClause.title = { contains: q.trim(), mode: 'insensitive' };
-  }
+  const escaped = q.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
+  const whereClause = escaped
+    ? and(eq(conversations.userId, session.user.id), ilike(conversations.title, `%${escaped}%`))
+    : eq(conversations.userId, session.user.id);
 
-  const [conversations, total] = await Promise.all([
-    prisma.conversation.findMany({
-      where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-      include: {
-        _count: {
-          select: { messages: true },
-        },
-      },
-    }),
-    prisma.conversation.count({ where: whereClause }),
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(conversations)
+      .where(whereClause)
+      .orderBy(desc(conversations.updatedAt))
+      .offset((page - 1) * limit)
+      .limit(limit),
+    db.select({ total: count() }).from(conversations).where(whereClause),
   ]);
 
+  const messageCounts = rows.length
+    ? await db
+        .select({ conversationId: messages.conversationId, messages: count() })
+        .from(messages)
+        .where(inArray(messages.conversationId, rows.map((c) => c.id)))
+        .groupBy(messages.conversationId)
+    : [];
+  const countMap = new Map(messageCounts.map((m) => [m.conversationId, m.messages]));
+
   return Response.json({
-    conversations,
+    conversations: rows.map((c) => ({
+      ...c,
+      _count: { messages: countMap.get(c.id) ?? 0 },
+    })),
     pagination: {
       page,
       limit,
@@ -58,12 +65,10 @@ export async function POST(req: NextRequest) {
     const parsed = createConversationSchema.safeParse(body);
     const title = parsed.success && parsed.data.title ? parsed.data.title : 'Yangi suhbat';
 
-    const conversation = await prisma.conversation.create({
-      data: {
-        userId: session.user.id,
-        title,
-      },
-    });
+    const [conversation] = await db
+      .insert(conversations)
+      .values({ userId: session.user.id, title })
+      .returning();
 
     return Response.json(conversation, { status: 201 });
   } catch (error) {

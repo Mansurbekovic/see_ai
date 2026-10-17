@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/auth/dal';
 import { rateLimiter, rateLimitKey, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { validateFile, sanitizeFilename } from '@/lib/security/sanitize';
 import { processFileContent } from '@/lib/files/document-processor';
-import prisma from '@/lib/database/prisma';
+import { db, attachments } from '@db';
 
 export async function POST(req: NextRequest) {
   const session = await verifySession();
@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
     // Optional database record
     let attachmentId = '';
     if (conversationId) {
-      const attachment = await prisma.attachment.create({
-        data: {
+      const [attachment] = await db
+        .insert(attachments)
+        .values({
           conversationId,
           userId: session.user.id,
           filename: cleanFilename,
@@ -67,8 +68,8 @@ export async function POST(req: NextRequest) {
           mimeType: file.type,
           size: file.size,
           storagePath: 'memory://' + cleanFilename,
-        },
-      });
+        })
+        .returning();
       attachmentId = attachment.id;
     }
 
