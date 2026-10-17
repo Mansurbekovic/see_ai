@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth/dal';
-import prisma from '@/lib/database/prisma';
+import { eq } from 'drizzle-orm';
+import { db, userPreferences } from '@db';
 import { updateSettingsSchema } from '@/lib/security/validation';
 
 export async function GET() {
@@ -9,9 +10,11 @@ export async function GET() {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const preference = await prisma.userPreference.findUnique({
-    where: { userId: session.user.id },
-  });
+  const [preference] = await db
+    .select()
+    .from(userPreferences)
+    .where(eq(userPreferences.userId, session.user.id))
+    .limit(1);
 
   return Response.json({
     theme: preference?.theme || 'system',
@@ -34,14 +37,14 @@ export async function PATCH(req: NextRequest) {
     return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const updated = await prisma.userPreference.upsert({
-    where: { userId: session.user.id },
-    create: {
-      userId: session.user.id,
-      ...parsed.data,
-    },
-    update: parsed.data,
-  });
+  const [updated] = await db
+    .insert(userPreferences)
+    .values({ userId: session.user.id, ...parsed.data })
+    .onConflictDoUpdate({
+      target: userPreferences.userId,
+      set: { ...parsed.data, updatedAt: new Date() },
+    })
+    .returning();
 
   return Response.json(updated);
 }

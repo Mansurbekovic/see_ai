@@ -1,7 +1,17 @@
 import { NextRequest } from 'next/server';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 import { verifySession } from '@/lib/auth/dal';
-import prisma from '@/lib/database/prisma';
+import { db, conversations, messages, attachments } from '@db';
 import { updateConversationSchema } from '@/lib/security/validation';
+
+async function findOwnedConversation(id: string, userId: string) {
+  const [conversation] = await db
+    .select()
+    .from(conversations)
+    .where(and(eq(conversations.id, id), eq(conversations.userId, userId)))
+    .limit(1);
+  return conversation;
+}
 
 export async function GET(
   _req: NextRequest,
@@ -14,24 +24,32 @@ export async function GET(
 
   const { id } = await ctx.params;
 
-  const conversation = await prisma.conversation.findFirst({
-    where: {
-      id,
-      userId: session.user.id,
-    },
-    include: {
-      messages: {
-        orderBy: { createdAt: 'asc' },
-        include: { attachments: true },
-      },
-    },
-  });
+  const conversation = await findOwnedConversation(id, session.user.id);
 
   if (!conversation) {
     return Response.json({ error: 'Suhbat topilmadi' }, { status: 404 });
   }
 
-  return Response.json(conversation);
+  const messageRows = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, id))
+    .orderBy(asc(messages.createdAt));
+
+  const attachmentRows = messageRows.length
+    ? await db
+        .select()
+        .from(attachments)
+        .where(inArray(attachments.messageId, messageRows.map((m) => m.id)))
+    : [];
+
+  return Response.json({
+    ...conversation,
+    messages: messageRows.map((m) => ({
+      ...m,
+      attachments: attachmentRows.filter((a) => a.messageId === m.id),
+    })),
+  });
 }
 
 export async function PATCH(
@@ -45,9 +63,7 @@ export async function PATCH(
 
   const { id } = await ctx.params;
 
-  const exists = await prisma.conversation.findFirst({
-    where: { id, userId: session.user.id },
-  });
+  const exists = await findOwnedConversation(id, session.user.id);
 
   if (!exists) {
     return Response.json({ error: 'Suhbat topilmadi' }, { status: 404 });
@@ -59,10 +75,11 @@ export async function PATCH(
     return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const updated = await prisma.conversation.update({
-    where: { id },
-    data: { title: parsed.data.title },
-  });
+  const [updated] = await db
+    .update(conversations)
+    .set({ title: parsed.data.title })
+    .where(eq(conversations.id, id))
+    .returning();
 
   return Response.json(updated);
 }
@@ -78,17 +95,13 @@ export async function DELETE(
 
   const { id } = await ctx.params;
 
-  const exists = await prisma.conversation.findFirst({
-    where: { id, userId: session.user.id },
-  });
+  const exists = await findOwnedConversation(id, session.user.id);
 
   if (!exists) {
     return Response.json({ error: 'Suhbat topilmadi' }, { status: 404 });
   }
 
-  await prisma.conversation.delete({
-    where: { id },
-  });
+  await db.delete(conversations).where(eq(conversations.id, id));
 
   return Response.json({ success: true, message: 'Suhbat o‘chirildi' });
 }

@@ -8,6 +8,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@db': path.resolve(__dirname, './db/index.ts'),
       '@': path.resolve(__dirname, './src'),
     },
   },

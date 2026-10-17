@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth/dal';
-import prisma from '@/lib/database/prisma';
+import { and, asc, eq } from 'drizzle-orm';
+import { db, conversations, messages, attachments as attachmentsTable, usageRecords } from '@db';
 import { rateLimiter, rateLimitKey, RATE_LIMITS } from '@/lib/security/rate-limit';
 import { chatRequestSchema } from '@/lib/security/validation';
 import { providerRegistry } from '@/lib/ai/provider-registry';
@@ -80,15 +81,17 @@ export async function POST(req: NextRequest) {
   const modelId =
     requestedModel ||
     (providerName === 'anthropic'
-      ? process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
+      ? process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
       : process.env.GEMINI_MODEL || 'gemini-2.5-flash');
 
   // 5. Ensure conversation exists and belongs to user
   let conversationId = providedConvId;
   if (conversationId) {
-    const existingConv = await prisma.conversation.findFirst({
-      where: { id: conversationId, userId },
-    });
+    const [existingConv] = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
+      .limit(1);
     if (!existingConv) {
       return Response.json({ error: 'Suhbat topilmadi' }, { status: 404 });
     }
@@ -96,49 +99,50 @@ export async function POST(req: NextRequest) {
     const generatedTitle =
       userText.slice(0, 40).trim() + (userText.length > 40 ? '...' : '') ||
       'Yangi suhbat';
-    const newConv = await prisma.conversation.create({
-      data: {
+    const [newConv] = await db
+      .insert(conversations)
+      .values({
         userId,
         title: generatedTitle,
-      },
-    });
+      })
+      .returning();
     conversationId = newConv.id;
   }
 
   // 6. Persist user message to database
-  const userMessage = await prisma.message.create({
-    data: {
+  const [userMessage] = await db
+    .insert(messages)
+    .values({
       conversationId,
       role: 'user',
       content: userText,
       status: 'complete',
-    },
-  });
+    })
+    .returning();
 
   // Attach files to user message if present
   if (attachments.length > 0) {
     for (const att of attachments) {
-      await prisma.attachment.create({
-        data: {
-          conversationId,
-          messageId: userMessage.id,
-          userId,
-          filename: att.name || 'fayl',
-          originalName: att.name || 'fayl',
-          mimeType: att.mimeType,
-          size: Math.round((att.data.length * 3) / 4),
-          storagePath: 'memory://',
-        },
+      await db.insert(attachmentsTable).values({
+        conversationId,
+        messageId: userMessage.id,
+        userId,
+        filename: att.name || 'fayl',
+        originalName: att.name || 'fayl',
+        mimeType: att.mimeType,
+        size: Math.round((att.data.length * 3) / 4),
+        storagePath: 'memory://',
       });
     }
   }
 
   // 7. Load recent history for context
-  const previousMessages = await prisma.message.findMany({
-    where: { conversationId },
-    orderBy: { createdAt: 'asc' },
-    take: 20,
-  });
+  const previousMessages = await db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(asc(messages.createdAt))
+    .limit(20);
 
   const formattedMessages: AIMessage[] = previousMessages.map((m) => ({
     role: m.role as 'user' | 'assistant' | 'tool',
@@ -213,8 +217,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Persist final assistant response
-        const assistantMessage = await prisma.message.create({
-          data: {
+        const [assistantMessage] = await db
+          .insert(messages)
+          .values({
             conversationId,
             role: 'assistant',
             content: accumulatedText,
@@ -222,25 +227,23 @@ export async function POST(req: NextRequest) {
             provider: providerName,
             model: modelId,
             tokensUsed: outputTokens,
-          },
-        });
+          })
+          .returning();
 
         // Update conversation timestamp
-        await prisma.conversation.update({
-          where: { id: conversationId },
-          data: { updatedAt: new Date() },
-        });
+        await db
+          .update(conversations)
+          .set({ updatedAt: new Date() })
+          .where(eq(conversations.id, conversationId));
 
         // Record usage
         if (inputTokens || outputTokens) {
-          await prisma.usageRecord.create({
-            data: {
-              userId,
-              provider: providerName,
-              model: modelId,
-              tokensIn: inputTokens,
-              tokensOut: outputTokens,
-            },
+          await db.insert(usageRecords).values({
+            userId,
+            provider: providerName,
+            model: modelId,
+            tokensIn: inputTokens,
+            tokensOut: outputTokens,
           });
         }
 
@@ -260,15 +263,13 @@ export async function POST(req: NextRequest) {
 
         // Save partial response if aborted or errored
         if (accumulatedText.trim()) {
-          await prisma.message.create({
-            data: {
-              conversationId,
-              role: 'assistant',
-              content: accumulatedText,
-              status: req.signal.aborted ? 'cancelled' : 'error',
-              provider: providerName,
-              model: modelId,
-            },
+          await db.insert(messages).values({
+            conversationId,
+            role: 'assistant',
+            content: accumulatedText,
+            status: req.signal.aborted ? 'cancelled' : 'error',
+            provider: providerName,
+            model: modelId,
           });
         }
 
