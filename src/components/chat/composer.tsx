@@ -313,7 +313,7 @@ export function Composer({
 
       {/* Controls & Actions Bar */}
       <div className="mt-2 flex items-center justify-between border-t border-border-subtle pt-2">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 overflow-hidden">
           {/* File Upload Button */}
           <input
             ref={fileInputRef}
@@ -328,8 +328,8 @@ export function Composer({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || isUploading || attachments.length >= 5}
-            className="flex items-center justify-center rounded-xl p-2 text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary disabled:opacity-40"
-            title="Fayl biriktirish"
+            className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary active:scale-90 disabled:opacity-40"
+            title="Fayl biriktirish (rasm, PDF, hujjat)"
           >
             <Paperclip className="h-4 w-4" />
           </button>
@@ -338,9 +338,9 @@ export function Composer({
           <button
             type="button"
             onClick={toggleListening}
-            className={`flex items-center justify-center rounded-xl p-2 transition-all ${
+            className={`flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl transition-all active:scale-90 ${
               isListening
-                ? 'bg-red-500/15 text-red-500 border border-red-500/30 animate-pulse'
+                ? 'bg-red-500/20 text-red-500 border border-red-500/40 animate-pulse'
                 : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
             }`}
             title={isListening ? "Ovozli kiritishni to'xtatish" : "Ovoz orqali gapirish"}
@@ -352,32 +352,32 @@ export function Composer({
           <button
             type="button"
             onClick={() => setSearchEnabled(!searchEnabled)}
-            className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 rounded-xl px-2 sm:px-2.5 py-1.5 text-xs font-medium transition-all active:scale-95 ${
               searchEnabled
-                ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20'
+                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
                 : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
             }`}
-            title="Internetdan qidirish"
+            title="Internetdan qidirish (DuckDuckGo / Brave)"
           >
-            <Globe className="h-3.5 w-3.5" />
-            <span>Qidiruv</span>
+            <Globe className="h-3.5 w-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Qidiruv</span>
           </button>
 
           {/* Guest Count Badge */}
           {guestCount !== undefined && guestCount > 0 && !guestLimitReached && (
-            <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">
-              Sinov: {guestCount}/3
+            <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-bold text-cyan-400 whitespace-nowrap">
+              {guestCount}/3
             </span>
           )}
         </div>
 
         {/* Send / Stop Button */}
-        <div>
+        <div className="shrink-0 pl-1">
           {isStreaming ? (
             <button
               type="button"
               onClick={onStop}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-text-primary text-text-inverse transition-transform hover:scale-105 active:scale-95"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-text-primary text-text-inverse transition-transform hover:scale-105 active:scale-90 shadow-sm"
               aria-label={t.chat.stopGenerating}
             >
               <Square className="h-4 w-4 fill-current" />
@@ -387,7 +387,7 @@ export function Composer({
               type="button"
               onClick={handleSubmit}
               disabled={disabled || (!content.trim() && attachments.length === 0)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white transition-all hover:bg-brand-700 active:scale-95 disabled:bg-surface-tertiary disabled:text-text-tertiary disabled:hover:scale-100"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 active:scale-90 disabled:bg-surface-tertiary disabled:text-text-tertiary disabled:shadow-none disabled:opacity-40"
               aria-label={t.chat.sendMessage}
             >
               <Send className="h-4 w-4" />

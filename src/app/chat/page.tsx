@@ -48,7 +48,7 @@ export default function NewChatPage() {
       )}
 
       {/* Fixed Composer Bottom Bar */}
-      <div className="mx-auto w-full max-w-3xl p-4 md:pb-6">
+      <div className="mx-auto w-full max-w-3xl p-2.5 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:pb-6">
         <Composer
           onSend={handleSend}
           onStop={stop}

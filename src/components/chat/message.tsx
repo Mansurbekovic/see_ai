@@ -133,12 +133,12 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
           </div>
         )}
 
-        {/* Action Buttons */}
+        {/* Action Buttons (Always visible on mobile touchscreens) */}
         {!isStreaming && message.content && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="mt-2.5 flex items-center gap-1 sm:gap-2 text-xs text-text-tertiary opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1 rounded-md px-2 py-1 transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+              className="flex h-7 items-center gap-1 rounded-lg px-2 transition-colors hover:bg-surface-tertiary hover:text-text-primary active:scale-95 text-[11px] sm:text-xs"
             >
               {copied ? (
                 <>
@@ -157,7 +157,7 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
             {!isUser && (
               <button
                 onClick={toggleSpeak}
-                className={`flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${
+                className={`flex h-7 items-center gap-1 rounded-lg px-2 transition-colors active:scale-95 text-[11px] sm:text-xs ${
                   isSpeaking
                     ? 'bg-brand-500/15 text-brand-500'
                     : 'hover:bg-surface-tertiary hover:text-text-primary'
@@ -181,7 +181,7 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
             {!isUser && onRegenerate && isLast && (
               <button
                 onClick={onRegenerate}
-                className="flex items-center gap-1 rounded-md px-2 py-1 transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+                className="flex h-7 items-center gap-1 rounded-lg px-2 transition-colors hover:bg-surface-tertiary hover:text-text-primary active:scale-95 text-[11px] sm:text-xs"
               >
                 <RefreshCw className="h-3 w-3" />
                 <span>Qayta yaratish</span>

@@ -61,6 +61,7 @@ function ChatLayoutContent({ children }: { children: React.ReactNode }) {
           selectedModel={selectedModel}
           onSelectModel={setSelectedModel}
           onOpenMobileNav={() => setMobileNavOpen(true)}
+          onNewChat={handleNewChat}
         />
         <main className="flex flex-1 flex-col overflow-hidden">
           {children}
