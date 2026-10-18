@@ -21,6 +21,7 @@ import {
 import { useI18n } from '@/lib/i18n/context';
 import { Avatar } from '@/components/ui/avatar';
 import { AuthorModal } from '@/components/layout/author-modal';
+import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 import type { ConversationItem } from '@/hooks/use-conversations';
 
 interface SidebarProps {
@@ -92,6 +93,7 @@ export const Sidebar: FC<SidebarProps> = ({
             >
               <Sparkles className="h-4 w-4" />
             </button>
+            <PwaInstallButton compact />
             <Link
               href="/settings"
               className="rounded-xl p-2 text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors"
@@ -319,6 +321,8 @@ export const Sidebar: FC<SidebarProps> = ({
             </Link>
           </div>
         )}
+
+        <PwaInstallButton />
 
         <div className="flex items-center gap-1">
           <Link

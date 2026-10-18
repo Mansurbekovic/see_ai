@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { Menu, Sparkles, ChevronDown, UserCheck, LogIn } from 'lucide-react';
 import type { ModelInfo } from '@/lib/ai/types';
 import { AuthorModal } from '@/components/layout/author-modal';
+import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 
 interface HeaderProps {
   models: ModelInfo[];
@@ -63,7 +64,9 @@ export const Header: FC<HeaderProps> = ({
         </div>
 
         {/* Author Button & Product Info */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          <PwaInstallButton compact />
+
           {!session?.user && (
             <Link
               href="/login"
