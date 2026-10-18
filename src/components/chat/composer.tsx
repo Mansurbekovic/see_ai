@@ -91,7 +91,7 @@ export function Composer({
       (window as unknown as { webkitSpeechRecognition?: new () => BrowserSpeechRecognition }).webkitSpeechRecognition;
 
     if (!SpeechRecognitionClass) {
-      alert("Brauzeringiz ovozli kiritishni qo'llab-quvvatlamaydi. Chrome yoki Edge tavsiya etiladi.");
+      alert("Ushbu brauzerda ovozli kiritish qo'llab-quvvatlanmaydi. Google Chrome yoki Microsoft Edge brauzeridan foydalanish tavsiya etiladi.");
       return;
     }
 
@@ -189,7 +189,10 @@ export function Composer({
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.size > 10 * 1024 * 1024) continue; // 10MB limit
+        if (file.size > 5 * 1024 * 1024) {
+          alert(`"${file.name}" faylining hajmi 5 MB dan oshadi. Iltimos, 5 MB dan kichik hajmdagi fayl yuklang.`);
+          continue;
+        }
 
         const isImage = file.type.startsWith('image/');
         const base64 = await new Promise<string>((resolve, reject) => {

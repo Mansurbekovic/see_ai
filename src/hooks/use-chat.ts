@@ -35,22 +35,37 @@ export function useChat({
   // Guest trial state
   const [isGuest, setIsGuest] = useState(false);
   const [guestCount, setGuestCount] = useState<number>(() => {
-    if (typeof document !== 'undefined') {
+    if (typeof window !== 'undefined') {
       const match = document.cookie.match(/(?:^|;\s*)see_ai_guest_count=([0-9]+)/);
-      if (match) {
-        const val = parseInt(match[1], 10);
-        return isNaN(val) ? 0 : val;
+      const cookieVal = match ? parseInt(match[1], 10) : 0;
+      let localVal = 0;
+      try {
+        localVal = parseInt(localStorage.getItem('see_ai_guest_count') || '0', 10);
+      } catch {
+        // Ignore
       }
+      const maxVal = Math.max(isNaN(cookieVal) ? 0 : cookieVal, isNaN(localVal) ? 0 : localVal);
+      try {
+        localStorage.setItem('see_ai_guest_count', maxVal.toString());
+        document.cookie = `see_ai_guest_count=${maxVal}; path=/; max-age=31536000; SameSite=Lax`;
+      } catch {
+        // Ignore
+      }
+      return maxVal;
     }
     return 0;
   });
   const [guestLimitReached, setGuestLimitReached] = useState<boolean>(() => {
-    if (typeof document !== 'undefined') {
+    if (typeof window !== 'undefined') {
       const match = document.cookie.match(/(?:^|;\s*)see_ai_guest_count=([0-9]+)/);
-      if (match) {
-        const val = parseInt(match[1], 10);
-        return val >= 3;
+      const cookieVal = match ? parseInt(match[1], 10) : 0;
+      let localVal = 0;
+      try {
+        localVal = parseInt(localStorage.getItem('see_ai_guest_count') || '0', 10);
+      } catch {
+        // Ignore
       }
+      return Math.max(isNaN(cookieVal) ? 0 : cookieVal, isNaN(localVal) ? 0 : localVal) >= 3;
     }
     return false;
   });
@@ -123,7 +138,10 @@ export function useChat({
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-guest-count': String(guestCount),
+          },
           body: JSON.stringify({
             conversationId,
             message: content,
@@ -143,6 +161,12 @@ export function useChat({
           const errData = await res.json().catch(() => ({}));
           if (res.status === 403 && (errData.requireAuth || errData.guestLimitReached)) {
             setGuestLimitReached(true);
+            try {
+              localStorage.setItem('see_ai_guest_count', '3');
+              document.cookie = 'see_ai_guest_count=3; path=/; max-age=31536000; SameSite=Lax';
+            } catch {
+              // Ignore
+            }
             setShowAuthModal(true);
             setMessages((prev) =>
               prev.map((msg) =>
@@ -195,6 +219,12 @@ export function useChat({
                   setIsGuest(true);
                   if (typeof event.guestCount === 'number') {
                     setGuestCount(event.guestCount);
+                    try {
+                      localStorage.setItem('see_ai_guest_count', event.guestCount.toString());
+                      document.cookie = `see_ai_guest_count=${event.guestCount}; path=/; max-age=31536000; SameSite=Lax`;
+                    } catch {
+                      // Ignore
+                    }
                     if (event.guestCount >= 3) {
                       setGuestLimitReached(true);
                     }
@@ -232,6 +262,12 @@ export function useChat({
                 onFinish?.(finalMsg);
               } else if (event.type === 'guest_limit_reached') {
                 setGuestLimitReached(true);
+                try {
+                  localStorage.setItem('see_ai_guest_count', '3');
+                  document.cookie = 'see_ai_guest_count=3; path=/; max-age=31536000; SameSite=Lax';
+                } catch {
+                  // Ignore
+                }
                 setShowAuthModal(true);
               } else if (event.type === 'error') {
                 throw new Error(event.error);
@@ -269,7 +305,7 @@ export function useChat({
         abortControllerRef.current = null;
       }
     },
-    [conversationId, isStreaming, onFinish, onError, guestLimitReached]
+    [conversationId, isStreaming, onFinish, onError, guestLimitReached, guestCount]
   );
 
   return {

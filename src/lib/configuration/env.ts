@@ -97,9 +97,8 @@ export function isGoogleOAuthConfigured(): boolean {
 }
 
 /**
- * Check if web search is configured.
+ * Check if web search is configured (Always true due to DuckDuckGo fallback).
  */
 export function isSearchConfigured(): boolean {
-  const env = getEnv();
-  return env.WEB_SEARCH_PROVIDER.length > 0;
+  return true;
 }

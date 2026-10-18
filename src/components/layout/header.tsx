@@ -43,12 +43,14 @@ export const Header: FC<HeaderProps> = ({
                 onChange={(e) => onSelectModel(e.target.value)}
                 className="cursor-pointer appearance-none bg-transparent pr-4 font-semibold text-text-primary focus:outline-none"
               >
-                {models.length > 0 ? (
-                  models.map((m) => (
-                    <option key={m.id} value={m.id} className="bg-surface-primary text-text-primary">
-                      {m.name} ({m.provider})
-                    </option>
-                  ))
+                {models.filter((m) => (m as { available?: boolean }).available !== false).length > 0 ? (
+                  models
+                    .filter((m) => (m as { available?: boolean }).available !== false)
+                    .map((m) => (
+                      <option key={m.id} value={m.id} className="bg-surface-primary text-text-primary">
+                        {m.name} ({m.provider})
+                      </option>
+                    ))
                 ) : (
                   <option value="gemini-2.5-flash" className="bg-surface-primary text-text-primary">
                     Gemini 2.5 Flash (Google)

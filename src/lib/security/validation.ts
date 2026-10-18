@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Chat request
 export const chatRequestSchema = z.object({
-  conversationId: z.string().cuid().optional(),
+  conversationId: z.string().max(100).optional(),
   message: z.string().min(1).max(100_000),
   provider: z.enum(['gemini', 'anthropic']).optional(),
   model: z.string().max(100).optional(),
@@ -10,7 +10,7 @@ export const chatRequestSchema = z.object({
   attachments: z.array(z.object({
     type: z.enum(['image', 'document']),
     mimeType: z.string(),
-    data: z.string(), // base64
+    data: z.string().max(8_000_000, "Fayl hajmi 5 MB dan oshmasligi kerak"), // base64 of max 5MB file
     name: z.string().optional(),
   })).max(5).optional(),
 });

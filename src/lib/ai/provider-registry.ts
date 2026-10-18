@@ -33,6 +33,22 @@ export class ProviderRegistry {
     }
     return models;
   }
+
+  getProviderForModel(modelId: string): AIProvider | undefined {
+    for (const provider of this.providers.values()) {
+      const models = typeof provider.getModels === 'function' ? provider.getModels() : provider.models || [];
+      if (models.some((m) => m.id === modelId)) {
+        return provider;
+      }
+    }
+    if (modelId.startsWith('claude')) {
+      return this.providers.get('anthropic');
+    }
+    if (modelId.startsWith('gemini')) {
+      return this.providers.get('gemini');
+    }
+    return undefined;
+  }
 }
 
 export const providerRegistry = new ProviderRegistry();

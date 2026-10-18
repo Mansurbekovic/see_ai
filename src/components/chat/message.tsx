@@ -34,7 +34,10 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
   }, [message.content]);
 
   const toggleSpeak = useCallback(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert("Brauzeringiz matnni ovozli o'qish imkoniyatini qo'llab-quvvatlamaydi.");
+      return;
+    }
 
     if (isSpeaking) {
       window.speechSynthesis.cancel();
@@ -42,12 +45,17 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(message.content);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.cancel();
+      const cleanText = message.content.replace(/[#*`_~[\]()]/g, ' ');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setIsSpeaking(false);
+    }
   }, [isSpeaking, message.content]);
 
   useEffect(() => {

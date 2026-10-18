@@ -103,6 +103,40 @@ describe('Guest Trial: 3-Query Limit', () => {
     const isLimitReached = guestCount >= 3;
     expect(isLimitReached).toBe(true);
   });
+
+  it('correctly maps model to provider via getProviderForModel', () => {
+    const gemini = providerRegistry.getProviderForModel('gemini-2.5-flash');
+    expect(gemini?.name).toBe('gemini');
+
+    const claude = providerRegistry.getProviderForModel('claude-3-5-sonnet-20241022');
+    expect(claude?.name).toBe('anthropic');
+  });
+
+  it('rejects attachment payload exceeding 5MB limit', () => {
+    const oversizedData = 'a'.repeat(8_000_001);
+    const result = chatRequestSchema.safeParse({
+      message: 'Salom',
+      attachments: [{
+        type: 'document',
+        mimeType: 'application/pdf',
+        data: oversizedData,
+      }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts valid attachments under 5MB limit', () => {
+    const validData = 'a'.repeat(100);
+    const result = chatRequestSchema.safeParse({
+      message: 'Salom',
+      attachments: [{
+        type: 'image',
+        mimeType: 'image/png',
+        data: validData,
+      }],
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 

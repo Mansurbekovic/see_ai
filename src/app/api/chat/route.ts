@@ -7,6 +7,9 @@ import { providerRegistry } from '@/lib/ai/provider-registry';
 import { isProviderConfigured } from '@/lib/configuration/env';
 import type { AIMessage, AIAttachment } from '@/lib/ai/types';
 
+// Vercel Serverless max duration configuration (60 seconds)
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   // 1. Authenticate user or evaluate guest trial mode
   const session = await verifySession();
@@ -16,8 +19,9 @@ export async function POST(req: NextRequest) {
   let guestCount = 0;
   if (isGuest) {
     const rawCookie = req.cookies.get('see_ai_guest_count')?.value;
-    guestCount = rawCookie ? parseInt(rawCookie, 10) : 0;
-    if (isNaN(guestCount)) guestCount = 0;
+    const cookieCount = rawCookie ? parseInt(rawCookie, 10) : 0;
+    const headerCount = parseInt(req.headers.get('x-guest-count') || '0', 10);
+    guestCount = Math.max(isNaN(cookieCount) ? 0 : cookieCount, isNaN(headerCount) ? 0 : headerCount);
 
     // Agar mehmon 3 ta bepul so'rovini ishlatib bo'lgan bo'lsa -> Majburiy ro'yxatdan o'tish
     if (guestCount >= 3) {
@@ -80,11 +84,18 @@ export async function POST(req: NextRequest) {
   } = parsed.data;
 
   // 4. Select provider and check API keys
-  const providerName = requestedProvider;
+  let providerName = requestedProvider;
+  if (requestedModel) {
+    const matched = providerRegistry.getProviderForModel(requestedModel);
+    if (matched) {
+      providerName = matched.name as 'gemini' | 'anthropic';
+    }
+  }
+
   if (!isProviderConfigured(providerName)) {
     return Response.json(
       {
-        error: `${providerName.toUpperCase()} provayderi sozlanmagan. Iltimos, server sozlamalarida tegishli API kalitini kiriting.`,
+        error: `${providerName.toUpperCase()} provayderi sozlanmagan. Iltimos, server sozlamalarida tegishli API kalitini kiriting yoki mavjud modelni tanlang.`,
       },
       { status: 503 }
     );

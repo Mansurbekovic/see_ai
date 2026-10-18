@@ -6,6 +6,17 @@ import os from 'os';
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function resolveDatabaseUrl(): string {
+  const raw = process.env.DATABASE_URL || 'file:./dev.db';
+
+  // If a remote database (PostgreSQL, MySQL, etc.) is configured, use it directly
+  if (
+    raw.startsWith('postgres://') ||
+    raw.startsWith('postgresql://') ||
+    raw.startsWith('mysql://')
+  ) {
+    return raw;
+  }
+
   const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
   if (isServerless) {
@@ -37,7 +48,6 @@ function resolveDatabaseUrl(): string {
   }
 
   // Local development
-  const raw = process.env.DATABASE_URL || 'file:./dev.db';
   if (raw.startsWith('file:./') || raw.startsWith('file:../')) {
     const rel = raw.replace('file:', '');
     const inPrisma = path.join(process.cwd(), 'prisma', rel);
