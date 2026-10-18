@@ -11,11 +11,15 @@ import {
 } from 'react';
 
 export type Theme = 'light' | 'dark' | 'system';
+export type FontSize = 'normal' | 'large';
 
 interface ThemeContextType {
   theme: Theme;
   resolvedTheme: 'light' | 'dark';
   setTheme: (theme: Theme) => void;
+  fontSize: FontSize;
+  setFontSize: (size: FontSize) => void;
+  toggleFontSize: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
@@ -39,16 +43,27 @@ function getSystemThemeServerSnapshot(): 'light' | 'dark' {
 }
 
 function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'dark';
   try {
-    return (localStorage.getItem('see-ai-theme') as Theme) || 'system';
+    return (localStorage.getItem('see-ai-theme') as Theme) || 'dark';
   } catch {
-    return 'system';
+    return 'dark';
+  }
+}
+
+function getStoredFontSize(): FontSize {
+  if (typeof window === 'undefined') return 'normal';
+  try {
+    return (localStorage.getItem('see-ai-font-size') as FontSize) || 'normal';
+  } catch {
+    return 'normal';
   }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  const [fontSize, setFontSizeState] = useState<FontSize>(getStoredFontSize);
+
   const systemTheme = useSyncExternalStore(
     subscribeSystemTheme,
     getSystemThemeSnapshot,
@@ -59,9 +74,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle('dark', resolvedTheme === 'dark');
-    root.style.colorScheme = resolvedTheme;
+    if (resolvedTheme === 'dark') {
+      root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
+    }
   }, [resolvedTheme]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle('font-large', fontSize === 'large');
+  }, [fontSize]);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
@@ -72,8 +99,38 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setFontSize = useCallback((s: FontSize) => {
+    setFontSizeState(s);
+    try {
+      localStorage.setItem('see-ai-font-size', s);
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
+
+  const toggleFontSize = useCallback(() => {
+    setFontSizeState((prev) => {
+      const next = prev === 'normal' ? 'large' : 'normal';
+      try {
+        localStorage.setItem('see-ai-font-size', next);
+      } catch {
+        // Ignore
+      }
+      return next;
+    });
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        resolvedTheme,
+        setTheme,
+        fontSize,
+        setFontSize,
+        toggleFontSize,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

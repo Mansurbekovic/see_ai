@@ -18,8 +18,10 @@ import {
   FileText,
   Mic,
   MicOff,
+  Wand2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/context';
+import { QuickToolsModal } from '@/components/chat/quick-tools-modal';
 
 export interface ComposerAttachment {
   id: string;
@@ -73,6 +75,7 @@ export function Composer({
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [quickToolsOpen, setQuickToolsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
@@ -363,6 +366,17 @@ export function Composer({
             <span className="hidden sm:inline">Qidiruv</span>
           </button>
 
+          {/* Quick AI Tools Button */}
+          <button
+            type="button"
+            onClick={() => setQuickToolsOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-cyan-400 transition-all hover:border-cyan-500/60 hover:from-cyan-500/20 hover:to-blue-500/20 active:scale-95"
+            title="Tezkor AI vositalari (Imlo, Rasmiy ariza, Tarjimon, Xulosa)"
+          >
+            <Wand2 className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+            <span className="hidden sm:inline">Vositalar</span>
+          </button>
+
           {/* Guest Count Badge */}
           {guestCount !== undefined && guestCount > 0 && !guestLimitReached && (
             <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-bold text-cyan-400 whitespace-nowrap">
@@ -395,6 +409,19 @@ export function Composer({
           )}
         </div>
       </div>
+
+      {/* Quick AI Tools Modal */}
+      <QuickToolsModal
+        isOpen={quickToolsOpen}
+        onClose={() => setQuickToolsOpen(false)}
+        onApplyPrompt={(craftedPrompt) => {
+          if (guestLimitReached) {
+            onOpenAuthModal?.();
+            return;
+          }
+          onSend(craftedPrompt, [], searchEnabled);
+        }}
+      />
     </div>
   );
 }

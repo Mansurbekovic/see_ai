@@ -20,6 +20,7 @@ interface MessageProps {
 export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => {
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechRate, setSpeechRate] = useState<number>(1.0);
   const isUser = message.role === 'user';
   const isStreaming = message.status === 'streaming';
 
@@ -49,6 +50,7 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
       window.speechSynthesis.cancel();
       const cleanText = message.content.replace(/[#*`_~[\]()]/g, ' ');
       const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = speechRate;
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
       setIsSpeaking(true);
@@ -56,7 +58,16 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
     } catch {
       setIsSpeaking(false);
     }
-  }, [isSpeaking, message.content]);
+  }, [isSpeaking, message.content, speechRate]);
+
+  const cycleSpeechRate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rates = [1.0, 1.25, 1.5, 0.85];
+    setSpeechRate((prev) => {
+      const idx = rates.indexOf(prev);
+      return rates[(idx + 1) % rates.length];
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -153,29 +164,38 @@ export const Message: FC<MessageProps> = ({ message, onRegenerate, isLast }) => 
               )}
             </button>
 
-            {/* Read Aloud Button */}
+            {/* Read Aloud Button with Speed Selector */}
             {!isUser && (
-              <button
-                onClick={toggleSpeak}
-                className={`flex h-7 items-center gap-1 rounded-lg px-2 transition-colors active:scale-95 text-[11px] sm:text-xs ${
-                  isSpeaking
-                    ? 'bg-brand-500/15 text-brand-500'
-                    : 'hover:bg-surface-tertiary hover:text-text-primary'
-                }`}
-                title={isSpeaking ? "Ovozni to'xtatish" : "Ovoz chiqarib o'qish"}
-              >
-                {isSpeaking ? (
-                  <>
-                    <VolumeX className="h-3 w-3 animate-pulse text-brand-500" />
-                    <span className="text-brand-500">{"To'xtatish"}</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="h-3 w-3" />
-                    <span>{"O'qish"}</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center rounded-lg border border-border-default/50 overflow-hidden bg-surface-secondary/40">
+                <button
+                  onClick={toggleSpeak}
+                  className={`flex h-7 items-center gap-1 px-2 transition-colors active:scale-95 text-[11px] sm:text-xs ${
+                    isSpeaking
+                      ? 'bg-cyan-500/20 text-cyan-400'
+                      : 'hover:bg-surface-tertiary hover:text-text-primary'
+                  }`}
+                  title={isSpeaking ? "Ovozni to'xtatish" : "Ovoz chiqarib o'qish"}
+                >
+                  {isSpeaking ? (
+                    <>
+                      <VolumeX className="h-3 w-3 animate-pulse text-cyan-400" />
+                      <span className="text-cyan-400">{"To'xtatish"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="h-3 w-3" />
+                      <span>{"O'qish"}</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={cycleSpeechRate}
+                  className="flex h-7 items-center border-l border-border-default/50 px-1.5 text-[10px] font-bold text-text-tertiary hover:bg-surface-tertiary hover:text-text-primary active:scale-95 transition-colors"
+                  title="O'qish tezligi (bosib o'zgartiring: 0.85x, 1x, 1.25x, 1.5x)"
+                >
+                  {speechRate}x
+                </button>
+              </div>
             )}
 
             {!isUser && onRegenerate && isLast && (

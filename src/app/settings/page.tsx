@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { ArrowLeft, Moon, Sun, Monitor, Globe, Shield, Save, LogOut, Sparkles, Phone, Send } from 'lucide-react';
+import { ArrowLeft, Moon, Sun, Monitor, Globe, Shield, Save, LogOut, Sparkles, Phone, Send, Type } from 'lucide-react';
 import { useTheme } from '@/hooks/use-theme';
 import { useI18n } from '@/lib/i18n/context';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Avatar } from '@/components/ui/avatar';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, fontSize, setFontSize } = useTheme();
   const { locale, setLocale, t } = useI18n();
 
   const [saving, setSaving] = useState(false);
@@ -112,6 +112,34 @@ export default function SettingsPage() {
                       ? t.settings.dark
                       : t.settings.system}
                   </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Font Size Section */}
+          <div className="border-t border-border-default/60 pt-6">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-text-primary">
+              <Type className="h-4 w-4 text-cyan-400" />
+              <span>Matn va Shrift O&apos;lchami (Kattalar uchun qulay)</span>
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { size: 'normal' as const, label: 'Oddiy shrift (16px)', desc: 'Standart kompyuter va telefon o\'lchami' },
+                { size: 'large' as const, label: 'Katta shrift (18px)', desc: 'Katta yoshdagilar va oson o\'qish uchun' },
+              ].map((item) => (
+                <button
+                  key={item.size}
+                  type="button"
+                  onClick={() => setFontSize(item.size)}
+                  className={`flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all ${
+                    fontSize === item.size
+                      ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400 font-semibold'
+                      : 'border-border-default bg-surface-primary text-text-secondary hover:bg-surface-hover'
+                  }`}
+                >
+                  <span className="text-xs font-bold text-text-primary">{item.label}</span>
+                  <span className="text-[10px] text-text-tertiary leading-snug">{item.desc}</span>
                 </button>
               ))}
             </div>

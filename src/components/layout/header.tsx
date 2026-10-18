@@ -6,6 +6,7 @@ import type { ModelInfo } from '@/lib/ai/types';
 import { AuthorModal } from '@/components/layout/author-modal';
 import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { FontSizeToggle } from '@/components/ui/font-size-toggle';
 
 interface HeaderProps {
   models: ModelInfo[];
@@ -80,6 +81,7 @@ export const Header: FC<HeaderProps> = ({
             </button>
           )}
 
+          <FontSizeToggle compact />
           <ThemeToggle compact />
           <PwaInstallButton compact />
 

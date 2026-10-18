@@ -23,6 +23,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { AuthorModal } from '@/components/layout/author-modal';
 import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { FontSizeToggle } from '@/components/ui/font-size-toggle';
 import type { ConversationItem } from '@/hooks/use-conversations';
 
 interface SidebarProps {
@@ -326,6 +327,7 @@ export const Sidebar: FC<SidebarProps> = ({
 
         <PwaInstallButton />
         <ThemeToggle />
+        <FontSizeToggle />
 
         <div className="flex items-center gap-1">
           <Link

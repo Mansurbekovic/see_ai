@@ -47,9 +47,39 @@ export default function RootLayout({
   return (
     <html
       lang="uz"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      data-theme="dark"
       suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var t = localStorage.getItem('see-ai-theme');
+                  var isDark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches) || !t;
+                  if (t === 'light') isDark = false;
+                  var doc = document.documentElement;
+                  if (isDark) {
+                    doc.classList.add('dark');
+                    doc.setAttribute('data-theme', 'dark');
+                    doc.style.colorScheme = 'dark';
+                  } else {
+                    doc.classList.remove('dark');
+                    doc.setAttribute('data-theme', 'light');
+                    doc.style.colorScheme = 'light';
+                  }
+                  var fs = localStorage.getItem('see-ai-font-size');
+                  if (fs === 'large') {
+                    doc.classList.add('font-large');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-surface-primary text-text-primary">
         <SessionProvider>
           <ThemeProvider>
