@@ -305,6 +305,21 @@ export const Sidebar: FC<SidebarProps> = ({
           </div>
         )}
 
+        {!session?.user && (
+          <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-2.5 text-center">
+            <div className="mb-1.5 flex items-center justify-between text-[11px]">
+              <span className="font-semibold text-cyan-400">Sinov rejimi</span>
+              <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300">3 ta bepul</span>
+            </div>
+            <Link
+              href="/login"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-1.5 text-xs font-semibold text-white shadow-sm hover:from-cyan-400 hover:to-blue-500 transition-all"
+            >
+              <span>{"Kirish / Ro'yxatdan o'tish"}</span>
+            </Link>
+          </div>
+        )}
+
         <div className="flex items-center gap-1">
           <Link
             href="/settings"
@@ -317,15 +332,6 @@ export const Sidebar: FC<SidebarProps> = ({
             <Settings className="h-4 w-4" />
             <span>{t.settings.title}</span>
           </Link>
-          {!session?.user && (
-            <button
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              className="rounded-xl p-2 text-text-tertiary hover:bg-surface-hover hover:text-error transition-colors"
-              title="Chiqish"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          )}
         </div>
       </div>
     </aside>

@@ -3,11 +3,21 @@
 import { Welcome } from '@/components/chat/welcome';
 import { Composer, type ComposerAttachment } from '@/components/chat/composer';
 import { MessageList } from '@/components/chat/message-list';
+import { GuestAuthModal } from '@/components/chat/guest-auth-modal';
 import { useChat } from '@/hooks/use-chat';
 import { useModel } from '@/context/model-context';
 
 export default function NewChatPage() {
-  const { messages, isStreaming, sendMessage, stop } = useChat();
+  const {
+    messages,
+    isStreaming,
+    sendMessage,
+    stop,
+    guestCount,
+    guestLimitReached,
+    showAuthModal,
+    setShowAuthModal,
+  } = useChat();
   const { selectedModel } = useModel();
 
   const handleSend = (
@@ -43,8 +53,19 @@ export default function NewChatPage() {
           onSend={handleSend}
           onStop={stop}
           isStreaming={isStreaming}
+          guestCount={guestCount}
+          guestLimitReached={guestLimitReached}
+          onOpenAuthModal={() => setShowAuthModal(true)}
         />
       </div>
+
+      {/* Guest Trial Limit Modal */}
+      <GuestAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        guestCount={guestCount}
+      />
     </div>
   );
 }
+

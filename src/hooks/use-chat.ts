@@ -32,6 +32,30 @@ export function useChat({
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Guest trial state
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestCount, setGuestCount] = useState<number>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)see_ai_guest_count=([0-9]+)/);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        return isNaN(val) ? 0 : val;
+      }
+    }
+    return 0;
+  });
+  const [guestLimitReached, setGuestLimitReached] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)see_ai_guest_count=([0-9]+)/);
+      if (match) {
+        const val = parseInt(match[1], 10);
+        return val >= 3;
+      }
+    }
+    return false;
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   const [prevInitialMessages, setPrevInitialMessages] = useState(initialMessages);
   if (initialMessages !== prevInitialMessages) {
     setPrevInitialMessages(initialMessages);
@@ -61,6 +85,11 @@ export function useChat({
     ) => {
       if (!content.trim() && attachments.length === 0) return;
       if (isStreaming) return;
+
+      if (guestLimitReached) {
+        setShowAuthModal(true);
+        return;
+      }
 
       setError(null);
       setIsStreaming(true);
@@ -112,6 +141,23 @@ export function useChat({
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
+          if (res.status === 403 && (errData.requireAuth || errData.guestLimitReached)) {
+            setGuestLimitReached(true);
+            setShowAuthModal(true);
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      content:
+                        "⚠️ Bepul sinov so'rovlari limiti tugadi (3/3). Suhbatni cheklovlarsiz davom ettirish uchun ro'yxatdan o'tishingiz yoki tizimga kirishingiz shart.",
+                      status: 'error',
+                    }
+                  : msg
+              )
+            );
+            return;
+          }
           throw new Error(errData.error || `Server xatosi: ${res.status}`);
         }
 
@@ -145,6 +191,15 @@ export function useChat({
                 if (event.conversationId && !conversationId) {
                   setConversationId(event.conversationId);
                 }
+                if (event.isGuest) {
+                  setIsGuest(true);
+                  if (typeof event.guestCount === 'number') {
+                    setGuestCount(event.guestCount);
+                    if (event.guestCount >= 3) {
+                      setGuestLimitReached(true);
+                    }
+                  }
+                }
               } else if (event.type === 'text') {
                 accumulatedText += event.text;
                 setMessages((prev) =>
@@ -175,6 +230,9 @@ export function useChat({
                   )
                 );
                 onFinish?.(finalMsg);
+              } else if (event.type === 'guest_limit_reached') {
+                setGuestLimitReached(true);
+                setShowAuthModal(true);
               } else if (event.type === 'error') {
                 throw new Error(event.error);
               }
@@ -211,7 +269,7 @@ export function useChat({
         abortControllerRef.current = null;
       }
     },
-    [conversationId, isStreaming, onFinish, onError]
+    [conversationId, isStreaming, onFinish, onError, guestLimitReached]
   );
 
   return {
@@ -219,6 +277,11 @@ export function useChat({
     isStreaming,
     conversationId,
     error,
+    isGuest,
+    guestCount,
+    guestLimitReached,
+    showAuthModal,
+    setShowAuthModal,
     sendMessage,
     stop,
     setMessages,

@@ -8,17 +8,38 @@ import { isProviderConfigured } from '@/lib/configuration/env';
 import type { AIMessage, AIAttachment } from '@/lib/ai/types';
 
 export async function POST(req: NextRequest) {
-  // 1. Authenticate user
+  // 1. Authenticate user or evaluate guest trial mode
   const session = await verifySession();
-  if (!session?.user?.id) {
-    return Response.json({ error: 'Avtorizatsiyadan o‘tilmagan' }, { status: 401 });
+  const userId = session?.user?.id;
+  const isGuest = !userId;
+
+  let guestCount = 0;
+  if (isGuest) {
+    const rawCookie = req.cookies.get('see_ai_guest_count')?.value;
+    guestCount = rawCookie ? parseInt(rawCookie, 10) : 0;
+    if (isNaN(guestCount)) guestCount = 0;
+
+    // Agar mehmon 3 ta bepul so'rovini ishlatib bo'lgan bo'lsa -> Majburiy ro'yxatdan o'tish
+    if (guestCount >= 3) {
+      return Response.json(
+        {
+          error: "Siz 3 ta bepul sinov so'rovidan to'liq foydalandingiz. Suhbatni davom ettirish uchun ro'yxatdan o'tishingiz yoki tizimga kirishingiz shart.",
+          requireAuth: true,
+          guestLimitReached: true,
+          guestCount: 3,
+          limit: 3,
+        },
+        { status: 403 }
+      );
+    }
   }
 
-  const userId = session.user.id;
+  // 2. Rate limit (authenticated by userId, guest by IP)
+  const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'guest-client';
+  const rateLimitIdentifier = userId ? rateLimitKey(userId, 'chat') : `guest:${clientIp}`;
 
-  // 2. Rate limit
   const rateCheck = rateLimiter.check(
-    rateLimitKey(userId, 'chat'),
+    rateLimitIdentifier,
     RATE_LIMITS.chat
   );
   if (!rateCheck.allowed) {
@@ -83,67 +104,84 @@ export async function POST(req: NextRequest) {
       ? process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
       : process.env.GEMINI_MODEL || 'gemini-2.5-flash');
 
-  // 5. Ensure conversation exists and belongs to user
   let conversationId = providedConvId;
-  if (conversationId) {
-    const existingConv = await prisma.conversation.findFirst({
-      where: { id: conversationId, userId },
-    });
-    if (!existingConv) {
-      return Response.json({ error: 'Suhbat topilmadi' }, { status: 404 });
-    }
-  } else {
-    const generatedTitle =
-      userText.slice(0, 40).trim() + (userText.length > 40 ? '...' : '') ||
-      'Yangi suhbat';
-    const newConv = await prisma.conversation.create({
-      data: {
-        userId,
-        title: generatedTitle,
-      },
-    });
-    conversationId = newConv.id;
-  }
+  let userMessageId = `msg-${Date.now()}`;
+  let formattedMessages: AIMessage[] = [];
 
-  // 6. Persist user message to database
-  const userMessage = await prisma.message.create({
-    data: {
-      conversationId,
-      role: 'user',
-      content: userText,
-      status: 'complete',
-    },
-  });
+  const newGuestCount = isGuest ? guestCount + 1 : 0;
 
-  // Attach files to user message if present
-  if (attachments.length > 0) {
-    for (const att of attachments) {
-      await prisma.attachment.create({
+  if (!isGuest && userId) {
+    // 5. Authenticated flow: ensure conversation exists and belongs to user
+    if (conversationId) {
+      const existingConv = await prisma.conversation.findFirst({
+        where: { id: conversationId, userId },
+      });
+      if (!existingConv) {
+        return Response.json({ error: 'Suhbat topilmadi' }, { status: 404 });
+      }
+    } else {
+      const generatedTitle =
+        userText.slice(0, 40).trim() + (userText.length > 40 ? '...' : '') ||
+        'Yangi suhbat';
+      const newConv = await prisma.conversation.create({
         data: {
-          conversationId,
-          messageId: userMessage.id,
           userId,
-          filename: att.name || 'fayl',
-          originalName: att.name || 'fayl',
-          mimeType: att.mimeType,
-          size: Math.round((att.data.length * 3) / 4),
-          storagePath: 'memory://',
+          title: generatedTitle,
         },
       });
+      conversationId = newConv.id;
     }
+
+    // Persist user message to database
+    const userMessage = await prisma.message.create({
+      data: {
+        conversationId,
+        role: 'user',
+        content: userText,
+        status: 'complete',
+      },
+    });
+    userMessageId = userMessage.id;
+
+    // Attach files to user message if present
+    if (attachments.length > 0) {
+      for (const att of attachments) {
+        await prisma.attachment.create({
+          data: {
+            conversationId,
+            messageId: userMessage.id,
+            userId,
+            filename: att.name || 'fayl',
+            originalName: att.name || 'fayl',
+            mimeType: att.mimeType,
+            size: Math.round((att.data.length * 3) / 4),
+            storagePath: 'memory://',
+          },
+        });
+      }
+    }
+
+    // Load recent history for context
+    const previousMessages = await prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+    });
+
+    formattedMessages = previousMessages.map((m) => ({
+      role: m.role as 'user' | 'assistant' | 'tool',
+      content: m.content,
+    }));
+  } else {
+    // Guest flow: direct in-memory message history without requiring database
+    conversationId = conversationId || 'guest-session';
+    formattedMessages = [
+      {
+        role: 'user',
+        content: userText,
+      },
+    ];
   }
-
-  // 7. Load recent history for context
-  const previousMessages = await prisma.message.findMany({
-    where: { conversationId },
-    orderBy: { createdAt: 'asc' },
-    take: 20,
-  });
-
-  const formattedMessages: AIMessage[] = previousMessages.map((m) => ({
-    role: m.role as 'user' | 'assistant' | 'tool',
-    content: m.content,
-  }));
 
   // Append attachments to the latest user message
   if (attachments.length > 0 && formattedMessages.length > 0) {
@@ -193,7 +231,10 @@ export async function POST(req: NextRequest) {
           `data: ${JSON.stringify({
             type: 'meta',
             conversationId,
-            messageId: userMessage.id,
+            messageId: userMessageId,
+            isGuest,
+            guestCount: newGuestCount,
+            guestRemaining: Math.max(0, 3 - newGuestCount),
           })}\n\n`
         )
       );
@@ -212,54 +253,75 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Persist final assistant response
-        const assistantMessage = await prisma.message.create({
-          data: {
-            conversationId,
-            role: 'assistant',
-            content: accumulatedText,
-            status: 'complete',
-            provider: providerName,
-            model: modelId,
-            tokensUsed: outputTokens,
-          },
-        });
+        let assistantMessageId = `guest-asst-${Date.now()}`;
 
-        // Update conversation timestamp
-        await prisma.conversation.update({
-          where: { id: conversationId },
-          data: { updatedAt: new Date() },
-        });
-
-        // Record usage
-        if (inputTokens || outputTokens) {
-          await prisma.usageRecord.create({
+        if (!isGuest && userId) {
+          // Persist final assistant response for logged-in users
+          const assistantMessage = await prisma.message.create({
             data: {
-              userId,
+              conversationId,
+              role: 'assistant',
+              content: accumulatedText,
+              status: 'complete',
               provider: providerName,
               model: modelId,
-              tokensIn: inputTokens,
-              tokensOut: outputTokens,
+              tokensUsed: outputTokens,
             },
           });
+          assistantMessageId = assistantMessage.id;
+
+          // Update conversation timestamp
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: { updatedAt: new Date() },
+          });
+
+          // Record usage
+          if (inputTokens || outputTokens) {
+            await prisma.usageRecord.create({
+              data: {
+                userId,
+                provider: providerName,
+                model: modelId,
+                tokensIn: inputTokens,
+                tokensOut: outputTokens,
+              },
+            });
+          }
         }
 
         controller.enqueue(
           encoder.encode(
             `data: ${JSON.stringify({
               type: 'done',
-              messageId: assistantMessage.id,
+              messageId: assistantMessageId,
               conversationId,
+              isGuest,
+              guestCount: newGuestCount,
+              guestRemaining: Math.max(0, 3 - newGuestCount),
             })}\n\n`
           )
         );
+
+        if (isGuest && newGuestCount >= 3) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: 'guest_limit_reached',
+                count: 3,
+                limit: 3,
+                message: "Siz 3 ta bepul sinov so'rovidan foydalandingiz. Davom ettirish uchun ro'yxatdan o'ting!",
+              })}\n\n`
+            )
+          );
+        }
       } catch (err: unknown) {
         console.error('Chat stream error:', err);
         const errorMessage =
           err instanceof Error ? err.message : 'Noma‘lum xatolik';
 
-        // Save partial response if aborted or errored
-        if (accumulatedText.trim()) {
+        // Save partial response if aborted or errored (authenticated only)
+        if (!isGuest && accumulatedText.trim()) {
           await prisma.message.create({
             data: {
               conversationId,
@@ -269,7 +331,7 @@ export async function POST(req: NextRequest) {
               provider: providerName,
               model: modelId,
             },
-          });
+          }).catch(() => {});
         }
 
         controller.enqueue(
@@ -283,12 +345,16 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return new Response(readable, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  });
+  const headers: Record<string, string> = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  };
+
+  if (isGuest) {
+    headers['Set-Cookie'] = `see_ai_guest_count=${newGuestCount}; Path=/; Max-Age=2592000; SameSite=Lax`;
+  }
+
+  return new Response(readable, { headers });
 }

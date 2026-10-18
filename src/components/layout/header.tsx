@@ -1,5 +1,7 @@
 import { useState, type FC } from 'react';
-import { Menu, Sparkles, ChevronDown, UserCheck } from 'lucide-react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { Menu, Sparkles, ChevronDown, UserCheck, LogIn } from 'lucide-react';
 import type { ModelInfo } from '@/lib/ai/types';
 import { AuthorModal } from '@/components/layout/author-modal';
 
@@ -17,6 +19,7 @@ export const Header: FC<HeaderProps> = ({
   onOpenMobileNav,
 }) => {
   const [authorModalOpen, setAuthorModalOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <>
@@ -59,6 +62,16 @@ export const Header: FC<HeaderProps> = ({
 
         {/* Author Button & Product Info */}
         <div className="flex items-center gap-2.5">
+          {!session?.user && (
+            <Link
+              href="/login"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:from-cyan-400 hover:to-blue-500 transition-all"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Kirish</span>
+            </Link>
+          )}
+
           <button
             onClick={() => setAuthorModalOpen(true)}
             className="group flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-400 hover:border-cyan-500/60 hover:from-cyan-500/20 hover:to-blue-500/20 shadow-sm transition-all active:scale-95"

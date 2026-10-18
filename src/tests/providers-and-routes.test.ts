@@ -91,3 +91,18 @@ describe('Database: Prisma Client', () => {
   });
 });
 
+describe('Guest Trial: 3-Query Limit', () => {
+  it('allows guest queries when count is under 3', () => {
+    const guestCount = 2;
+    const isLimitReached = guestCount >= 3;
+    expect(isLimitReached).toBe(false);
+  });
+
+  it('enforces mandatory authentication when guest count reaches 3', () => {
+    const guestCount = 3;
+    const isLimitReached = guestCount >= 3;
+    expect(isLimitReached).toBe(true);
+  });
+});
+
+

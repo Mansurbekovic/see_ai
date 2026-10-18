@@ -37,6 +37,9 @@ interface ComposerProps {
   isStreaming?: boolean;
   disabled?: boolean;
   placeholder?: string;
+  guestCount?: number;
+  guestLimitReached?: boolean;
+  onOpenAuthModal?: () => void;
 }
 
 interface BrowserSpeechRecognition {
@@ -60,6 +63,9 @@ export function Composer({
   isStreaming = false,
   disabled = false,
   placeholder,
+  guestCount,
+  guestLimitReached = false,
+  onOpenAuthModal,
 }: ComposerProps) {
   const { t, locale } = useI18n();
   const [content, setContent] = useState('');
@@ -156,6 +162,11 @@ export function Composer({
       return;
     }
 
+    if (guestLimitReached) {
+      onOpenAuthModal?.();
+      return;
+    }
+
     const trimmed = content.trim();
     if (!trimmed && attachments.length === 0) return;
     if (disabled || isUploading) return;
@@ -248,6 +259,23 @@ export function Composer({
         </div>
       )}
 
+      {/* Guest Trial Limit Banner */}
+      {guestLimitReached && (
+        <div className="mb-2.5 flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">{"Sinov so'rovlari tugadi (3/3)."}</span>
+            <span className="hidden sm:inline text-amber-200/80">{"Davom ettirish uchun ro'yxatdan o'ting!"}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenAuthModal}
+            className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm hover:from-cyan-400 hover:to-blue-500"
+          >
+            {"Ro'yxatdan o'tish"}
+          </button>
+        </div>
+      )}
+
       {/* Voice Listening Bar */}
       {isListening && (
         <div className="mb-2 flex items-center justify-between rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-1.5 text-xs text-red-500">
@@ -331,6 +359,13 @@ export function Composer({
             <Globe className="h-3.5 w-3.5" />
             <span>Qidiruv</span>
           </button>
+
+          {/* Guest Count Badge */}
+          {guestCount !== undefined && guestCount > 0 && !guestLimitReached && (
+            <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-semibold text-cyan-400">
+              Sinov: {guestCount}/3
+            </span>
+          )}
         </div>
 
         {/* Send / Stop Button */}

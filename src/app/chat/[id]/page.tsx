@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { MessageList } from '@/components/chat/message-list';
 import { Composer, type ComposerAttachment } from '@/components/chat/composer';
+import { GuestAuthModal } from '@/components/chat/guest-auth-modal';
 import { useChat, type ChatMessage } from '@/hooks/use-chat';
 import { Spinner } from '@/components/ui/spinner';
 import { useModel } from '@/context/model-context';
@@ -41,7 +42,16 @@ export default function ConversationPage() {
       .finally(() => setInitialLoading(false));
   }, [id]);
 
-  const { messages, isStreaming, sendMessage, stop } = useChat({
+  const {
+    messages,
+    isStreaming,
+    sendMessage,
+    stop,
+    guestCount,
+    guestLimitReached,
+    showAuthModal,
+    setShowAuthModal,
+  } = useChat({
     conversationId: id,
     initialMessages,
   });
@@ -80,8 +90,17 @@ export default function ConversationPage() {
           onSend={handleSend}
           onStop={stop}
           isStreaming={isStreaming}
+          guestCount={guestCount}
+          guestLimitReached={guestLimitReached}
+          onOpenAuthModal={() => setShowAuthModal(true)}
         />
       </div>
+
+      <GuestAuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        guestCount={guestCount}
+      />
     </div>
   );
 }

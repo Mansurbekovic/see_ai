@@ -20,22 +20,23 @@ export function middleware(req: NextRequest) {
 
   const isAuthPage = req.nextUrl.pathname.startsWith('/login');
   const isRootPage = req.nextUrl.pathname === '/';
-  const isProtectedPage =
-    req.nextUrl.pathname.startsWith('/chat') ||
-    req.nextUrl.pathname.startsWith('/settings');
+  const isSettingsPage = req.nextUrl.pathname.startsWith('/settings');
 
-  // Agar login qilmagan bo'lsa va himoyalangan sahifaga yoki asosiy sahifaga kirmoqchi bo'lsa -> majburiy /login
-  if (!hasSession && (isProtectedPage || isRootPage)) {
-    const loginUrl = new URL('/login', req.nextUrl.origin);
-    if (!isRootPage) {
-      loginUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
-    }
-    return NextResponse.redirect(loginUrl);
+  // Bosh sahifaga kirganda barchani /chat ga o'tkazish (mehmonlar ham to'g'ridan-to'g'ri foydalana oladi)
+  if (isRootPage) {
+    return NextResponse.redirect(new URL('/chat', req.nextUrl.origin));
   }
 
-  // Agar tizimga kirgan bo'lsa va /login yoki / ga kelsa -> to'g'ri /chat ga yo'naltirish
-  if (hasSession && (isAuthPage || isRootPage)) {
+  // Agar tizimga kirgan bo'lsa va /login ga kelsa -> to'g'ri /chat ga yo'naltirish
+  if (hasSession && isAuthPage) {
     return NextResponse.redirect(new URL('/chat', req.nextUrl.origin));
+  }
+
+  // Faqat shaxsiy sozlamalar sahifasi majburiy login talab qiladi
+  if (!hasSession && isSettingsPage) {
+    const loginUrl = new URL('/login', req.nextUrl.origin);
+    loginUrl.searchParams.set('callbackUrl', req.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
