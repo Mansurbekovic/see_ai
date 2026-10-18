@@ -1,0 +1,6 @@
+[build]
+  command = "npx prisma db push && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NPM_FLAGS = "--include=dev"
