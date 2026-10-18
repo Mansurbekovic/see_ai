@@ -22,6 +22,7 @@ import { useI18n } from '@/lib/i18n/context';
 import { Avatar } from '@/components/ui/avatar';
 import { AuthorModal } from '@/components/layout/author-modal';
 import { PwaInstallButton } from '@/components/layout/pwa-install-button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import type { ConversationItem } from '@/hooks/use-conversations';
 
 interface SidebarProps {
@@ -94,6 +95,7 @@ export const Sidebar: FC<SidebarProps> = ({
               <Sparkles className="h-4 w-4" />
             </button>
             <PwaInstallButton compact />
+            <ThemeToggle compact />
             <Link
               href="/settings"
               className="rounded-xl p-2 text-text-secondary hover:bg-surface-secondary hover:text-text-primary transition-colors"
@@ -120,7 +122,7 @@ export const Sidebar: FC<SidebarProps> = ({
 
   return (
     <>
-      <aside className="relative flex h-full w-[280px] flex-col border-r border-border-default bg-surface-secondary/60">
+      <aside className="relative hidden md:flex h-full w-[280px] flex-col border-r border-border-default bg-surface-secondary/60">
       {/* Brand Header */}
       <div className="flex items-center justify-between border-b border-border-default/60 px-4 py-3.5">
         <div className="flex items-center gap-2.5">
@@ -323,6 +325,7 @@ export const Sidebar: FC<SidebarProps> = ({
         )}
 
         <PwaInstallButton />
+        <ThemeToggle />
 
         <div className="flex items-center gap-1">
           <Link

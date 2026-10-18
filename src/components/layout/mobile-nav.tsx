@@ -19,6 +19,7 @@ import {
 import { Avatar } from '@/components/ui/avatar';
 import { AuthorModal } from '@/components/layout/author-modal';
 import { PwaInstallButton } from '@/components/layout/pwa-install-button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import type { ConversationItem } from '@/hooks/use-conversations';
 
 interface MobileNavProps {
@@ -173,8 +174,11 @@ export const MobileNav: FC<MobileNavProps> = ({
             )}
           </div>
 
-          {/* 5. Bottom Section: Account, PWA, Settings, Author */}
+          {/* 5. Bottom Section: Account, Theme, PWA, Settings, Author */}
           <div className="shrink-0 border-t border-border-default/80 bg-surface-secondary/30 p-3 space-y-2">
+            {/* Theme Toggle (Tun / Kun) */}
+            <ThemeToggle />
+
             {/* PWA Install Button */}
             <PwaInstallButton />
 

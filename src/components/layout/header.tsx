@@ -5,6 +5,7 @@ import { Menu, Sparkles, ChevronDown, UserCheck, LogIn, Plus } from 'lucide-reac
 import type { ModelInfo } from '@/lib/ai/types';
 import { AuthorModal } from '@/components/layout/author-modal';
 import { PwaInstallButton } from '@/components/layout/pwa-install-button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface HeaderProps {
   models: ModelInfo[];
@@ -79,6 +80,7 @@ export const Header: FC<HeaderProps> = ({
             </button>
           )}
 
+          <ThemeToggle compact />
           <PwaInstallButton compact />
 
           {!session?.user && (
