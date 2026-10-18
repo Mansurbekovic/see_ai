@@ -82,3 +82,12 @@ describe('Search: Untrusted Content Formatting', () => {
     expect(formatSearchContext([])).toBe('');
   });
 });
+
+describe('Database: Prisma Client', () => {
+  it('connects and queries user table without error code 14', async () => {
+    const { prisma } = await import('@/lib/database/prisma');
+    const users = await prisma.user.findMany({ take: 1 });
+    expect(Array.isArray(users)).toBe(true);
+  });
+});
+

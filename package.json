@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma db push && next build",
+    "build": "prisma db push && node -e \"const fs=require('fs');try{fs.copyFileSync('prisma/dev.db','public/dev.db');fs.copyFileSync('prisma/dev.db','dev.db');}catch(e){}\" && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"
